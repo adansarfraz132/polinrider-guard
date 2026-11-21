@@ -1,0 +1,40 @@
+# actions/checkout pinned to the v7.0.1 tag commit (verified against
+# https://github.com/actions/checkout/releases/tag/v7.0.1 and the GitHub
+# git refs API on 2026-11-21). Shellcheck is installed from Ubuntu packages
+# so this workflow does not depend on a third-party action.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install shellcheck and perl
+        run: sudo apt-get update && sudo apt-get install -y shellcheck perl
+
+      - name: Run tests
+        run: bash tests/run-tests.sh
+
+      - name: Shellcheck
+        run: |
+          shellcheck -x \
+            scan-repo.sh \
+            host-check.sh \
+            safe-clone.sh \
+            safe-pull.sh \
+            safe-install.sh \
+            install-hooks.sh \
+            apply-dev-defaults.sh \
+            update-iocs.sh \
+            tests/run-tests.sh \
+            hooks/*

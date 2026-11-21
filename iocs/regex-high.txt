@@ -1,0 +1,10 @@
+# PolinRider loader shapes (SafeDep 2026-10; OpenSourceMalware)
+# _$_xxxx shuffle table
+_\$_[0-9a-f]{4}=\(function\(
+# global.o='5-841-du' / global.i='A10-*23720' / global.i="A9-0337-4" markers at start of payload
+global\.(o|i)[[:space:]]*=[[:space:]]*['"]A?[0-9]+-[0-9A-Za-z*-]+['"]
+global\[['"](!|_V)['"]\][[:space:]]*=
+# Base64 payload pattern in TS files: eval("global.o='...';"+atob('...'))
+eval\([[:space:]]*["']global\.
+# Payload hidden after a long run of spaces on the same line (OSM; finom skill: 50+ spaces)
+[^[:space:]][ ]{200,}[^[:space:]]

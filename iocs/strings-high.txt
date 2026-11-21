@@ -1,0 +1,29 @@
+# PolinRider (OpenSourceMalware PolinRider README 2026-04-11; Chollima Hunter hunt 2026-10-04)
+rmcej%otb%
+Cot%3t=shtP
+_$_1e42
+global['!']
+global['_V']
+e9b53a7c-2342-4b15-b02d-bd8b8f6a03f9
+# PolinRider Ethereum-C2 generation (SafeDep 2026-10)
+0x33ff3edaf55a8e03dcbc7cb40d498a49cd499891
+0xa322e5f3d311d3080e6f0121063e9adc2490ef1a
+0xd31a213e77c0e3be774bd0ddbc86cf2d86090b59
+TCqf6Zka
+q4FZkxX{!h,Sr3=@
+y-p_>d$0B&@^1aQk
+YU7m{rE/>|==b>#~
+# PolinRider TRON / Aptos dead drops (OpenSourceMalware via Chollima Hunter)
+TMfKQEd7TJJa5xNZJZ2Lep838vrzrs7mAP
+TXfxHUet9pJVU1BgVkBAbrES4YUc1nGzcG
+0xbe037400670fbf1c32364f762975908dc43eeb38759263e7dfcdabc76380811e
+0x3f0e5781d0855fb460661ac63257376db1941b2bb522499e4757ecb3ebd5dce3
+# Shai-Hulud 1 (Securelist) and 2.0 (Datadog Security Labs)
+shai-hulud-workflow
+Sha1-Hulud: The Second Coming
+webhook.site/bb8ca5f6-4175-45d2-b042-fc9ebb8170b7
+# s1ngularity / Nx (Wiz, Ossprey, nrwl advisory GHSA-cxm3-wv7p-598c)
+s1ngularity-repository
+sudo shutdown -h 0
+You are a file-search agent
+/tmp/inventory.txt

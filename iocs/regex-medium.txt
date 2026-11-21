@@ -1,0 +1,15 @@
+# Generic loader/obfuscation heuristics. These also match some minified or legit code.
+eval\([[:space:]]*atob\(
+eval\([[:space:]]*Buffer\.from\(
+new Function\([[:space:]]*atob\(
+Function\([[:space:]]*["']return this["']\)
+_0x[0-9a-f]{4,6}\[
+require\(['"]child_process['"]\).*(spawn|exec)\(.*(detached|windowsHide)
+detached[[:space:]]*:[[:space:]]*true.*windowsHide[[:space:]]*:[[:space:]]*true
+windowsHide[[:space:]]*:[[:space:]]*true.*detached[[:space:]]*:[[:space:]]*true
+(spawn|exec|execSync)\([[:space:]]*['"]node(\.exe)?['"][[:space:]]*,[[:space:]]*\[[[:space:]]*['"]-e['"]
+global\.(r|m)[[:space:]]*=[[:space:]]*(require|module)
+process\.env\).*(post|axios|fetch)
+--dangerously-skip-permissions|--yolo|--trust-all-tools
+curl[^|;]*\|[[:space:]]*(ba|z)?sh
+(iwr|Invoke-WebRequest|irm|Invoke-RestMethod)[^|]*\|[[:space:]]*(iex|Invoke-Expression)

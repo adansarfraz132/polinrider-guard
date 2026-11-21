@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Global git hook: runs after `git pull` / merge. Same scan as post-checkout.
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+"${HOOK_DIR}/post-checkout" "x" "HEAD" "1"
+local_hook="$(git rev-parse --git-dir)/hooks/post-merge"
+[[ -x "${local_hook}" ]] && exec "${local_hook}" "$@"
+exit 0

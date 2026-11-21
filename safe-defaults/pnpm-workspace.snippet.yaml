@@ -1,0 +1,9 @@
+# Add to each repo's pnpm-workspace.yaml (pnpm 10.16+/11; see pnpm.io/supply-chain-security).
+# pnpm 11 already defaults to minimumReleaseAge 1440 and strictDepBuilds true; set them explicitly anyway.
+minimumReleaseAge: 1440          # minutes; wait 1 day before installing a new version
+strictDepBuilds: true            # fail install if a dependency wants to run a build script that is not allowed
+blockExoticSubdeps: true         # transitive deps must come from the registry, not git/tarball URLs
+trustPolicy: no-downgrade        # refuse a version whose publish trust level dropped
+allowBuilds:                     # pnpm 11 name (pnpm 10 used onlyBuiltDependencies); list ONLY what needs it
+  esbuild: true
+  # sharp: true

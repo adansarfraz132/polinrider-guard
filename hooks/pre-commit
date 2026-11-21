@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Blocks commits that add known malware markers (PolinRider re-infects repos by amending commits),
+# then chains to any repo-local pre-commit hook.
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+IOCS="${HOOK_DIR}/../iocs/strings-high.txt"
+if [[ -f "${IOCS}" && -z "${SKIP_REPO_SCAN:-}" ]]; then
+  pat="$(mktemp)"; grep -vE '^[[:space:]]*(#|$)' "${IOCS}" > "${pat}"
+  hits="$(git diff --cached --name-only -z --diff-filter=ACM | xargs -0 -r git grep --cached -I -i -l -F -f "${pat}" -- 2>/dev/null | grep -v '/iocs/' || true)"
+  rm -f "${pat}"
+  if [[ -n "${hits}" ]]; then
+    printf '\033[31mCommit blocked: staged files contain known malware markers:\033[0m\n%s\nRun scan-repo.sh and tell your security team. (Security tooling that stores markers: SKIP_REPO_SCAN=1 git commit ...)\n' "${hits}" >&2
+    exit 1
+  fi
+  if git diff --cached --name-only | grep -qE '(^|/)temp_auto_push\.bat$'; then
+    echo "Commit blocked: temp_auto_push.bat is the PolinRider propagation script." >&2; exit 1
+  fi
+fi
+local_hook="$(git rev-parse --git-dir)/hooks/pre-commit"
+[[ -x "${local_hook}" ]] && exec "${local_hook}" "$@"
+exit 0

@@ -1,0 +1,21 @@
+# algo hash | note
+# Shai-Hulud 2.0 (Datadog Security Labs; NCSC NZ; cirosec)
+sha256 a3894003ad1d293ba96d77881ccd2071446dc3f65f434669b49b3da92421901a | setup_bun.js
+sha256 62ee164b9b306250c1172583f138c9614139264f889fa99614903c12755468d0 | bun_environment.js
+sha256 cbb9bc5a8496243e02f3cc080efbe3e4a1430ba0671f2e43a202bf45b05479cd | bun_environment.js
+sha256 f099c5d9ec417d4445a0328ac0ada9cde79fc37410914103ae9c609cbc0ee068 | bun_environment.js
+sha256 f1df4896244500671eb4aa63ebb48ea11cee196fafaa0e9874e17b24ac053c02 | bun_environment.js (OSINT per Datadog, not directly witnessed)
+sha256 9d59fd0bcc14b671079824c704575f201b74276238dc07a9c12a93a84195648a | bun_environment.js (OSINT per Datadog, not directly witnessed)
+sha256 e0250076c1d2ac38777ea8f542431daf61fcbaab0ca9c196614b28065ef5b918 | bun_environment.js (OSINT per Datadog, not directly witnessed)
+# Shai-Hulud 1 (Securelist) - MD5
+md5 c96fbbe010dd4c5bfb801780856ec228 | bundle.js
+md5 78e701f42b76ccde3f2678e548886860 | bundle.js
+# s1ngularity / Nx telemetry.js variants (Wiz) - SHA1
+sha1 2379ac0e03b1a67c4ca5693136eff4945e644a91 | telemetry.js
+sha1 e5d1f3c45ee7cca6ae59cf64e0573050bbe136ec | telemetry.js
+sha1 b4f20b39aa6df1002872f07973024d85aa49abaf | telemetry.js
+sha1 d2438106211ebd12c4f0a248848bc9864c97a3c0 | telemetry.js
+# MathMain npm supply chain attack (SafeDep IOC feed 2026-09-18)
+sha256 ab66c98e8ed5235feb963ec8845765f62f5f26b1c58c266c409767e53bcb5ccd | lib/cjs/utils/event.js loader
+sha256 5d9e952c51875d2b897eedc22b002b94ab21c8004d513bc99ce3a885f8a01dae | lib/cjs/utils/is.js loader
+sha256 ed9b078594393d09d91ee008366ca75e3017cca18c79af99c5b294c61db67f06 | lib/cjs/utils/graph.js payload

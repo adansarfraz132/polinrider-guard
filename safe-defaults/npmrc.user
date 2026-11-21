@@ -1,0 +1,8 @@
+# ~/.npmrc additions (user level). Verified against npm v11 config docs (docs.npmjs.com/cli/v11/using-npm/config).
+# Do not run dependency lifecycle scripts (preinstall/install/postinstall/prepare).
+ignore-scripts=true
+# Do not install versions published less than 1 day ago (most hijacked versions are pulled within hours).
+# Older npm versions ignore this key.
+min-release-age=1
+audit=true
+fund=false

@@ -1,0 +1,33 @@
+# Snapshot. These rotate; a miss proves nothing.
+# PolinRider interim block list, OpenSourceMalware Aug 2026 guide (via Chollima Hunter)
+166.88.54.158
+198.105.127.210
+23.27.202.27
+154.91.0.103
+136.0.9.8
+166.88.4.2
+23.27.120.142
+202.155.8.173
+166.88.134.82
+188.43.33.249
+23.27.13.43
+# PolinRider Ethereum-wallet C2s (SafeDep 2026-10)
+23.27.20.187
+181.214.149.147
+181.214.149.148
+45.137.198.133
+166.88.134.62
+23.27.13.135
+166.88.73.46
+193.247.144.38
+166.88.134.75
+91.218.183.174
+# Contagious Interview / BeaverTail / InvisibleFerret (Chollima Hunter citing Datadog, Talos, GitLab; SEAL 2026-01)
+95.164.17.24
+23.227.202.244
+172.86.93.139
+146.70.253.107
+172.86.116.178
+# GlassWorm (Palo Alto Networks, Nov 2025)
+199.247.10.166
+199.247.13.106

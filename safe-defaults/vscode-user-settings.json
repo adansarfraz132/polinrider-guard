@@ -1,0 +1,12 @@
+{
+  // Merge into VS Code / Cursor USER settings (not workspace). Source: SEAL Intel, Jan 2026.
+  // With this, tasks.json "runOn": "folderOpen" never runs, even in a trusted workspace.
+  "task.allowAutomaticTasks": "off",
+  "security.workspace.trust.enabled": true,
+  "security.workspace.trust.untrustedFiles": "open",
+  "security.workspace.trust.emptyWindow": false,
+  "security.workspace.trust.startupPrompt": "always",
+  // GlassWorm spread through extension auto-updates. Review and update extensions by hand.
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false
+}

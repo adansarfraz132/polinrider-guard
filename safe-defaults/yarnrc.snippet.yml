@@ -1,0 +1,3 @@
+# Yarn Berry (2+) user or repo .yarnrc.yml
+enableScripts: false
+# Review any repo that sets yarnPath: it runs a repo-supplied JS file on every yarn command.

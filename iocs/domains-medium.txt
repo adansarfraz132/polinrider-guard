@@ -1,0 +1,8 @@
+# Legit blockchain APIs used as dead drops by PolinRider (OSM, SafeDep). Expected in web3 repos.
+api.trongrid.io
+fullnode.mainnet.aptoslabs.com
+ethereum-rpc.publicnode.com
+eth.drpc.org
+eth-mainnet.public.blastapi.io
+1rpc.io/eth
+eth.blockscout.com/api

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Global git hook (installed by install-hooks.sh). Runs after clone and branch checkout.
+# It cannot undo a checkout, but it warns before anyone installs or opens the code.
+# Checked-out files are inert until something runs them; the danger is the next step.
+prev="${1:-}"; flag="${3:-1}"
+[[ "${flag}" == "1" ]] || exit 0
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+SCAN="${POLINRIDER_GUARD_SCAN:-${HOOK_DIR}/../scan-repo.sh}"
+top="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+if [[ -x "${SCAN}" && -z "${SKIP_REPO_SCAN:-}" ]]; then
+  "${SCAN}" "${top}" > "${top}/.git/repo-scan.txt" 2>&1
+  rc=$?
+  if [[ ${rc} -eq 2 ]]; then
+    : > "${top}/.git/REPO-SCAN-BLOCKED"
+    printf '\n\033[31m!!! SECURITY SCAN FOUND KNOWN MALWARE PATTERNS IN THIS REPO !!!\033[0m\n' >&2
+    grep -E '^HIGH' -A1 "${top}/.git/repo-scan.txt" | head -n 30 >&2
+    printf 'Full report: %s/.git/repo-scan.txt\nDo NOT run npm/pnpm/yarn/pip install or open it in VS Code/Cursor. Tell your security team.\n\n' "${top}" >&2
+  elif [[ ${rc} -eq 1 ]]; then
+    rm -f "${top}/.git/REPO-SCAN-BLOCKED"
+    printf '[repo-scan] review items found (%s/.git/repo-scan.txt). Install with --ignore-scripts.\n' "${top}" >&2
+  else
+    rm -f "${top}/.git/REPO-SCAN-BLOCKED"
+  fi
+fi
+[[ "${prev}" == "0000000000000000000000000000000000000000" ]] && exit 0
+# Chain to a repo-local hook the user set up on purpose (never cloned from the remote).
+local_hook="$(git rev-parse --git-dir)/hooks/post-checkout"
+[[ -x "${local_hook}" ]] && exec "${local_hook}" "$@"
+exit 0
