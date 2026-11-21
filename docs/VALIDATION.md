@@ -146,17 +146,17 @@ GitHub's `codeload` (no git hooks, no install) and scanned with
 
 The three HIGH false positives, and the fixes, were:
 
-1. **prettier/prettier** `knip.config.js:16` — a *comment* mentioning
+1. **prettier/prettier** `knip.config.js:16` - a *comment* mentioning
    `` new Function() `` was treated as `config-dangerous-api`. The
    check now ignores matches that sit after `//` on the same line (or
    inside `/* */`).
-2. **reduxjs/redux** `website/src/pages/index.js:91` — a 2406-character
+2. **reduxjs/redux** `website/src/pages/index.js:91` - a 2406-character
    SVG `path` in a page component, not a build config. For `index.js` /
    `App.js`, a long line is now MEDIUM unless it also looks like an
    appended loader (hidden tail, `eval`, `global.i` / `global['_V']`,
    or a line longer than 8000 characters).
 3. **webpack/webpack-cli**
-   `test/build/compile-cache/webpack.config.js:3` — a test helper that
+   `test/build/compile-cache/webpack.config.js:3` - a test helper that
    imports `node:child_process` and nothing else malicious.
    `child_process` alone in a build config is now MEDIUM; `eval`,
    `new Function`, `atob`, `global.i=` and similar stay HIGH.

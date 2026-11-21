@@ -15,7 +15,7 @@ spread through repositories and packages the victim already owns.
 ## Entry vectors
 
 Researchers have documented four ways the first-stage loader gets onto a
-machine or into a project (OpenSourceMalware April 10–11 update):
+machine or into a project (OpenSourceMalware April 10-11 update):
 
 1. **Weaponized job-test / take-home repos.** Fake recruiters send a
    project that already contains the loader. OpenSourceMalware identified
