@@ -54,7 +54,7 @@ if (Get-Command npm -ErrorAction SilentlyContinue) {
     if ((npm config get ignore-scripts) -ne "true") { Write-Host "INFO  npm ignore-scripts is OFF for this user (see safe-defaults\README.md)." }
 }
 if ($script:found) {
-    Write-Host "`nSomething matched. Disconnect from the network, rotate GitHub/npm/cloud/SSH credentials from a different clean device, and tell your security team. SEAL recommends a full OS reinstall for Contagious Interview infections on Windows." -ForegroundColor Red
+    Write-Host "`nSomething matched. Disconnect from the network, run live-respond.ps1 -Kill -Quarantine and wait for the verdict SAFE TO ROTATE CREDENTIALS (rotating earlier lets a running loader steal the new credentials), then rotate GitHub/npm/cloud/SSH credentials from a different clean device, and tell your security team. SEAL recommends a full OS reinstall for Contagious Interview infections on Windows." -ForegroundColor Red
     exit 2
 }
 Write-Host "No known artifacts found on this PC (snapshot IOCs; not a guarantee)." -ForegroundColor Green

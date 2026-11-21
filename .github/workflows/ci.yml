@@ -25,11 +25,32 @@ jobs:
       - name: Run tests
         run: bash tests/run-tests.sh
 
+      - name: Run live response and history tests
+        run: bash tests/run-live-tests.sh
+
+      - name: Run live response tests under PowerShell 7
+        run: bash tests/run-live-ps1-tests.sh
+
+      - name: Perl syntax
+        run: |
+          for f in lib/*.pl lib/PRG.pm; do perl -Ilib -c "$f"; done
+
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          foreach ($f in Get-ChildItem *.ps1) {
+            $e = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$null, [ref]$e)
+            if ($e) { $e | ForEach-Object { Write-Error "$($f.Name): $($_.Message)" }; exit 1 }
+          }
+
       - name: Shellcheck
         run: |
           shellcheck -x \
             scan-repo.sh \
             host-check.sh \
+            live-respond.sh \
+            history-report.sh \
             safe-clone.sh \
             safe-pull.sh \
             safe-install.sh \
@@ -37,4 +58,6 @@ jobs:
             apply-dev-defaults.sh \
             update-iocs.sh \
             tests/run-tests.sh \
+            tests/run-live-tests.sh \
+            tests/run-live-ps1-tests.sh \
             hooks/*

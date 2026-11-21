@@ -79,8 +79,10 @@ if [[ ${found} -eq 1 ]]; then
 
 Something matched. Do not keep working on this machine:
  1. Disconnect it from the network (Wi-Fi off / unplug).
- 2. From a DIFFERENT clean device: rotate GitHub, npm, cloud, and SSH credentials; move crypto funds.
- 3. Tell your security team. A full OS reinstall is the safe fix (SEAL recommends it for Contagious Interview).
+ 2. Run ./live-respond.sh --kill --quarantine and wait for the verdict SAFE TO ROTATE CREDENTIALS.
+    Rotating a token before that lets a still-running loader steal the new one.
+ 3. From a DIFFERENT clean device: rotate GitHub, npm, cloud, and SSH credentials; move crypto funds.
+ 4. Tell your security team. A full OS reinstall is the safe fix (SEAL recommends it for Contagious Interview).
 EOF
   exit 2
 fi

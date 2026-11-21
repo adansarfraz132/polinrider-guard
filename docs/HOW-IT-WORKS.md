@@ -148,6 +148,8 @@ samples here.
 - Related Contagious Interview / InvisibleFerret host artifacts and,
   on Windows, startup items documented by SEAL (see
   `iocs/host-artifacts.txt`).
+- Re-run points on the machine: see "Stopping it" below. `live-respond.sh`
+  checks them and reports whether any remain.
 - OpenSourceMalware says they have seen git-history rewriting on Linux
   and macOS as well, but the *published* `temp_auto_push.bat` helper is
   a Windows batch file; they have not published an equivalent
@@ -193,6 +195,119 @@ mechanism above is how that evidence is manufactured after the laptop
 is already infected. The original infection may have been a take-home
 test, a malicious package, or a `folderOpen` task in a different
 folder.
+
+## Stopping it, and why order matters when you rotate credentials
+
+The loader does not steal "a token". It steals whatever the machine can
+read at the moment it runs: `process.env`, `~/.git-credentials`, browser
+stores, wallet extensions. And it can run again. Three things make that
+happen after the first infection:
+
+1. The **detached `node -e` process** keeps running after the build or
+   the editor task ends (SafeDep; OpenSourceMalware). It can fetch and
+   evaluate new stages for as long as it lives.
+2. Every **infected file on disk is a re-run point**. The loader runs
+   again whenever a build tool imports an infected `postcss.config.mjs`,
+   a `folderOpen` task fires, or a fake font or `spellright.dict` is run.
+   A repository you cloned weeks ago, or an old checkout of one of your
+   own projects, is enough.
+3. The **private npm prefix `~/.node_modules`** and the Python stager it
+   starts, plus the host artifacts (`~/.npl`, `~/.nlp`, `~/.n2`, `~/.pyp`
+   and similar) and, on Windows, Startup items and scheduled tasks
+   documented by SEAL.
+
+So if you rotate a GitHub token first, the next build can steal the new
+token. `live-respond.sh` and `live-respond.ps1` therefore do the steps
+in this order: find the running processes, find the re-run points, stop
+and move them aside on request, look again, and only then print
+`SAFE TO ROTATE CREDENTIALS`. If anything is left it prints
+`NOT SAFE YET` and the list.
+
+How each item is recognised, and what is deliberately **not** flagged:
+
+| Item | Flagged when | Not flagged |
+|------|--------------|-------------|
+| `node -e` / `bun -e` | Inline code carries a published marker (`global.i`, `global['!']`, `_$_xxxx`, wallets, XOR keys, C2 hosts and IPs); or an RPC dead-drop host plus `eval` / `/boot` / `_p_t`; or `http://IP:port/boot`; or `~/.node_modules` with axios or socket.io | Ordinary one-liners, `next dev`, webpack, a web3 script that only calls an RPC |
+| node running a file | The file is under an artifact folder, a `.woff` / `.woff2`, `spellright.dict`, or `bun_environment.js` | Any other script |
+| Python | The stage-3 lock file `tmp7A863DD1`, artifact folders, C2 hosts or IPs, MetaMask or Phantom extension IDs, or `.git-credentials` together with archive or upload code | Ordinary Python tools |
+| Auto-push | `temp_auto_push.*` in a shell command line; a shell one-liner that amends and force-pushes with `--no-verify`; `git` doing that when its parent is an interpreter or the script | A person typing `git push --force-with-lease` (reported as a note at most, never killed) |
+| Network | A node or Python process with an open connection to a snapshot C2 IP or to ports 1224, 2242, 5918, 5978 | Other programs on those ports |
+| `.vscode/tasks.json` | A `runOn: folderOpen` task that downloads, runs inline code, runs a C2 host, or silently runs a script | `folderOpen` tasks such as `npm run watch`; build-only tasks |
+| `~/.node_modules` | Contains both axios and socket.io-client | A folder you chose as your npm prefix (reported as REVIEW instead) |
+
+Limits that follow from the research: the IOC lists are snapshots, so a
+new marker, a renamed binary, or code running inside a legitimate
+process will not match. The Python stealer's command line has not been
+published in full, so the Python rules rely on the artifacts that were.
+A SAFE verdict means "none of the published indicators remain", which is
+the best a user-space tool can say.
+
+Quarantine **moves** files; it never deletes. Each moved path is
+recorded with its SHA-256 and mode in `manifest.json`, execute bits are
+cleared while the file sits in quarantine, and `--restore` puts it back
+only if the original path is free. Files that contain both your own
+content and malware (shell startup files, crontab, git config) are not
+moved: only the matching lines are commented out and the original is
+saved. A project config that has been injected (for example
+`postcss.config.mjs`) is moved whole, because the injected tail cannot
+be separated from the rest with certainty. Restore the legitimate
+version from a clean commit afterwards.
+
+## History report and fork check
+
+`history-report.sh` is read-only. For each repository it runs
+`git log --all --reverse -p` and looks at every added line for the same
+markers and loader patterns the scanner uses. The first commit with a
+hit is the first infected commit. For each hit it records the author and
+committer dates and raises two flags:
+
+- the committer date is more than a day after the author date (an amend,
+  a rebase, or a clock rewind), or
+- the commit is dated before its own parent (the history was rewritten
+  or the clock was set back).
+
+Those flags exist because `temp_auto_push.bat` sets the clock back to the
+last commit's timestamp, amends that commit, and force-pushes
+(see [Spreading through the victim's repos](#spreading-through-the-victims-repos)).
+Be careful with them in both directions. The amended commit keeps its
+original timestamp, so it can look perfectly ordinary, and an honest
+rebase can raise the first flag. The dates are a lead for the incident
+timeline, not proof of who wrote the code. The local reflog's
+`commit (amend)` count is printed as a further hint.
+
+It then checks every branch, remote branch and tag, and the working tree,
+and reports whether `HEAD` is infected now, whether the code survives only
+in history, or sits on other branches. The summary table lists, per
+repository, the status and the "infected since" date of the first commit.
+Documentation, text and CSV files are skipped, and this kit's own `iocs/`,
+`tests/`, `docs/` and `lib/` folders are skipped when the repository is a
+copy of this kit, because they quote the markers on purpose.
+
+`--github owner/repo` extends the question to copies on GitHub:
+
+1. It reads the repository, lists up to `--max-forks` public forks
+   (newest first), and for each fork fetches the file list of the default
+   branch with one API call, then reads up to 40 config, task, font and
+   dictionary files from `raw.githubusercontent.com` and applies the same
+   patterns. A fork is reported only with the file that matched.
+2. It reads the rate-limit headers after every call and stops before the
+   limit is used up, then says how many forks were not checked. Without a
+   token GitHub allows about 60 API calls an hour, so expect it to stop
+   early on larger forks lists. `GITHUB_TOKEN` is passed to curl on
+   standard input so it never appears in a process list or in output.
+3. With a token it runs GitHub code search for the loader fingerprints
+   found in your own repositories (the `global.i` marker value, for
+   example `A9-1403-4`) plus any `--fingerprint` you give, and prints the
+   reported file counts and a few sample URLs. Code search is not
+   available without authentication.
+
+What this cannot see: private repositories, plain clones, downloaded
+ZIPs and machines that never pushed to GitHub; infections outside the
+default branch of a fork or outside the file types listed above; and
+anything GitHub has not indexed. Code search counts matching files, not
+people, and includes security write-ups and IOC lists. It is a rough
+hint that the same code is in the wild, not a count of victims, and this
+tool never reports one.
 
 ## Sources
 
