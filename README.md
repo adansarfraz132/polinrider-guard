@@ -49,7 +49,7 @@ You need bash and perl (both ship with macOS, Linux, and Git for Windows).
 ### macOS and Linux
 
 ```bash
-git clone [GITHUB_LINK] polinrider-guard
+git clone https://github.com/adansarfraz132/polinrider-guard polinrider-guard
 cd polinrider-guard
 
 # Is this machine already infected? (read-only)
