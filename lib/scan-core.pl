@@ -116,6 +116,25 @@ my %font_ext = map { $_ => 1 } qw(woff woff2 ttf otf eot ttc);
 my %img_ext  = map { $_ => 1 } qw(png jpg jpeg gif ico webp bmp);
 my %script_ext = map { $_ => 1 } qw(bat cmd vbs vbe jse wsf hta scr lnk ps1 psm1 msi);
 
+sub unescape_js {
+  my ($s) = @_;
+  $s =~ s/\\u([0-9a-fA-F]{4})/chr(hex($1))/ge;
+  $s =~ s/\\x([0-9a-fA-F]{2})/chr(hex($1))/ge;
+  return $s;
+}
+# True if the match at $pos sits after // on its line, or inside a /* */ block.
+sub in_js_comment {
+  my ($s, $pos) = @_;
+  return 0 if $pos < 0;
+  my $line_start = $pos == 0 ? 0 : rindex($s, "\n", $pos - 1) + 1;
+  my $prefix = substr($s, $line_start, $pos - $line_start);
+  return 1 if $prefix =~ m{//};
+  my $before = substr($s, 0, $pos);
+  my $opens = () = $before =~ m{/\*}g;
+  my $closes = () = $before =~ m{\*/}g;
+  return $opens > $closes;
+}
+
 sub rel { my ($p) = @_; my $r = $p; $r =~ s/^\Q$root\E\/?//; return $r eq '' ? '.' : $r }
 sub ext { my ($b) = @_; return $b =~ /\.([^.\/]+)$/ ? lc $1 : '' }
 sub looks_like_js { my ($c) = @_; return $c =~ /(\brequire\s*\(|\bfunction\s*\(|\beval\s*\(|=>|\bvar\s+\w+\s*=|\bconst\s+\w+\s*=|module\.exports|child_process|global\[)/ }
@@ -151,6 +170,18 @@ sub scan_text {
     my $ln = 1 + (substr($c, 0, $i) =~ tr/\n//);
     finding('HIGH', 'ioc-string', "$rp:$ln", "known malware marker: $s");
   }
+  if ($code_ext{$e} || is_config($base)) {
+    my $dec = lc unescape_js($c);
+    if ($dec ne $lc) {
+      for my $s (@str_high) {
+        next if index($lc, $s) >= 0;
+        my $i = index($dec, $s);
+        next if $i < 0;
+        my $ln = 1 + (substr($dec, 0, $i) =~ tr/\n//);
+        finding('HIGH', 'ioc-string', "$rp:$ln", "known malware marker (javascript-escaped): $s");
+      }
+    }
+  }
   if ($rx_dom_high && $c =~ $rx_dom_high) { my $m = $&; my $ln = 1 + (substr($c,0,$-[0]) =~ tr/\n//); finding('HIGH', 'ioc-domain', "$rp:$ln", "known malicious host: $m") }
   if ($rx_ip_high  && $c =~ $rx_ip_high)  { my $m = $&; my $ln = 1 + (substr($c,0,$-[0]) =~ tr/\n//); finding('HIGH', 'ioc-ip', "$rp:$ln", "known C2 IP: $m") }
   if (!$in_nm) {
@@ -184,13 +215,33 @@ sub scan_text {
     for my $line (split /\n/, $c) {
       $ln++;
       my $len = length $line;
-      if ($len > ($cfg ? $long_cfg : 2000)) { finding($len > 1000 ? 'HIGH' : 'MEDIUM', 'config-long-line', "$rp:$ln", "line is $len chars in a config/entry file (PolinRider appends a one-line payload)") }
+      if ($cfg) {
+        if ($len > $long_cfg) { finding($len > 1000 ? 'HIGH' : 'MEDIUM', 'config-long-line', "$rp:$ln", "line is $len chars in a config/entry file (PolinRider appends a one-line payload)") }
+      } elsif ($len > 2000) {
+        # index.js / App.js often contain long SVG or data lines. HIGH only if the
+        # line also looks like an appended loader, or is as long as those payloads.
+        my $payloady = ($line =~ /\S[ \t]{50,}\S/ || $len > 8000
+          || $line =~ /(\beval\s*\(|global\[['"](!|_V)['"]\]|global\.(o|i)\s*=|_\$_[0-9a-f]{4}=)/);
+        finding($payloady ? 'HIGH' : 'MEDIUM', 'config-long-line', "$rp:$ln", "line is $len chars in a config/entry file (PolinRider appends a one-line payload)");
+      }
       if ($line =~ /\S[ \t]{50,}\S/) { finding('HIGH', 'config-hidden-tail', "$rp:$ln", 'code after 50+ spaces on one line (payload pushed off-screen)') }
     }
     if ($cfg) {
-      if ($c =~ /(\beval\s*\(|new\s+Function\s*\(|\bFunction\s*\(\s*['"]|child_process|\batob\s*\(|fromCharCode|Buffer\.from\([^)]*base64|\bglobal\s*\[|\bglobal\.\w+\s*=)/) {
-        my $m = $1; my $ln2 = 1 + (substr($c,0,$-[0]) =~ tr/\n//);
-        finding('HIGH', 'config-dangerous-api', "$rp:$ln2", "build config uses $m (no reason for a config to do this)");
+      my $api_rx = qr/(\beval\s*\(|new\s+Function\s*\(|\bFunction\s*\(\s*['"]|child_process|\batob\s*\(|fromCharCode|Buffer\.from\([^)]*base64|\bglobal\s*\[|\bglobal\.\w+\s*=)/;
+      my ($strong_m, $strong_ln, $weak_m, $weak_ln);
+      while ($c =~ /$api_rx/g) {
+        my $m = $1; my $pos = $-[0];
+        next if in_js_comment($c, $pos);
+        my $ln2 = 1 + (substr($c, 0, $pos) =~ tr/\n//);
+        if ($m =~ /(eval\s*\(|new\s+Function|Function\s*\(|atob\s*\(|fromCharCode|Buffer\.from|global\s*\[|global\.\w+\s*=)/) {
+          $strong_m = $m; $strong_ln = $ln2; last;
+        }
+        if (!$weak_m) { $weak_m = $m; $weak_ln = $ln2; }
+      }
+      if ($strong_m) {
+        finding('HIGH', 'config-dangerous-api', "$rp:$strong_ln", "build config uses $strong_m (no reason for a config to do this)");
+      } elsif ($weak_m) {
+        finding('MEDIUM', 'config-dangerous-api', "$rp:$weak_ln", "build config uses $weak_m (review; often a test helper, but unusual in app configs)");
       }
       if ($c =~ /\b(https?\.get|https?\.request|net\.connect|XMLHttpRequest|\bfetch\s*\(|axios)/) { my $m = $1; my $ln2 = 1 + (substr($c,0,$-[0]) =~ tr/\n//); finding('MEDIUM', 'config-network', "$rp:$ln2", "build config makes network calls ($m)") }
       if ($base =~ /^(postcss|tailwind)\.config\./ && $c =~ /createRequire/) { finding('MEDIUM', 'config-createRequire', $rp, 'createRequire preamble in postcss/tailwind config (injected by PolinRider variant)') }

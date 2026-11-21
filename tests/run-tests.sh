@@ -131,5 +131,44 @@ expect LOW git-dates .
 
 # The scanner must not print the 300-space payload line verbatim.
 if grep -q "$(printf '%*s' 100 '')" "${T}/dirty.out"; then bad "output contains long whitespace run"; else ok "output is sanitized"; fi
+
+# ---------------------------------------------------------------- false-positive / escaped-marker regressions (defanged, inert)
+# 1. A comment that mentions new Function() in a *.config.js must not be HIGH.
+C1="${T}/fp-comment"; mkdir -p "${C1}"
+# shellcheck disable=SC2016  # backticks in the fixture comment must stay literal
+printf '%s\n' 'export default {' '  // We use `new Function()` to create import() in bin/prettier.cjs' '  entry: ["src/index.js"]' '}' > "${C1}/knip.config.js"
+set +e; "${SCAN}" --no-git --report "${T}/fp-comment.tsv" "${C1}" > "${T}/fp-comment.out" 2>&1; rc=$?; set -e
+if awk -F'\t' '$1=="HIGH" && $2=="config-dangerous-api" {f=1} END{exit !f}' "${T}/fp-comment.tsv"; then bad "comment new Function() must not be HIGH"; cat "${T}/fp-comment.out"; else ok "comment new Function() is not HIGH"; fi
+if [[ ${rc} -eq 2 ]]; then bad "comment-only config should not exit 2"; else ok "comment-only config exit ${rc} (not 2)"; fi
+
+# 2. A long SVG path in index.js (common in websites) must not be HIGH by itself.
+C2="${T}/fp-index"; mkdir -p "${C2}"
+python3 -c "from pathlib import Path; Path('${C2}/index.js').write_text('export function Icon(){return (<svg><path d=\"' + ('M12.34 ' * 400) + '\"/></svg>);}\n')"
+set +e; "${SCAN}" --no-git --report "${T}/fp-index.tsv" "${C2}" > "${T}/fp-index.out" 2>&1; rc=$?; set -e
+if awk -F'\t' '$1=="HIGH" && $2=="config-long-line" {f=1} END{exit !f}' "${T}/fp-index.tsv"; then bad "long SVG in index.js must not be HIGH"; cat "${T}/fp-index.out"; else ok "long SVG in index.js is not HIGH"; fi
+if [[ ${rc} -eq 2 ]]; then bad "long SVG index.js should not exit 2"; else ok "long SVG index.js exit ${rc} (not 2)"; fi
+
+# 3. A webpack config that only imports child_process (test helper style) is MEDIUM, not HIGH.
+C3="${T}/fp-child"; mkdir -p "${C3}"
+printf '%s\n' '"use strict";' 'const { execFileSync } = require("node:child_process");' 'module.exports = {};' > "${C3}/webpack.config.js"
+set +e; "${SCAN}" --no-git --report "${T}/fp-child.tsv" "${C3}" > "${T}/fp-child.out" 2>&1; rc=$?; set -e
+if awk -F'\t' '$1=="HIGH" && $2=="config-dangerous-api" {f=1} END{exit !f}' "${T}/fp-child.tsv"; then bad "child_process-only webpack config must not be HIGH"; cat "${T}/fp-child.out"; else ok "child_process-only webpack config is not HIGH"; fi
+if awk -F'\t' '$1=="MEDIUM" && $2=="config-dangerous-api" {f=1} END{exit !f}' "${T}/fp-child.tsv"; then ok "child_process-only webpack config is MEDIUM"; else bad "child_process-only webpack config should be MEDIUM"; cat "${T}/fp-child.out"; fi
+
+# 4. Unicode-escaped marker in a postcss config (defanged; no live loader) is still HIGH.
+C4="${T}/esc"; mkdir -p "${C4}"
+python3 - "${C4}/postcss.config.mjs" <<"PYESC"
+from pathlib import Path
+import sys
+marker = "global['_V']"
+esc = "".join("\\u%04x" % ord(ch) for ch in marker)
+Path(sys.argv[1]).write_text(
+    "export default { plugins: {} };" + (" " * 80) + esc + "; // fixture only\n"
+)
+PYESC
+set +e; "${SCAN}" --no-git --report "${T}/esc.tsv" "${C4}" > "${T}/esc.out" 2>&1; rc=$?; set -e
+if awk -F'\t' '$1=="HIGH" && $2=="ioc-string" && index($0,"javascript-escaped")>0 {f=1} END{exit !f}' "${T}/esc.tsv"; then ok "escaped global['_V'] detected as ioc-string"; else bad "escaped global['_V'] was missed"; cat "${T}/esc.out"; fi
+if [[ ${rc} -eq 2 ]]; then ok "escaped-marker sample exits 2"; else bad "escaped-marker sample exit ${rc}"; cat "${T}/esc.out"; fi
+
 echo "----"; echo "passed=${pass} failed=${fail}"
 [[ ${fail} -eq 0 ]]

@@ -24,11 +24,11 @@ $IocDir = if ($env:IOC_DIR) { $env:IOC_DIR } else { Join-Path $Here "iocs" }
 $Root = (Resolve-Path -LiteralPath $Path).Path
 
 if (-not $Native) {
-    $bashCandidates = @(
-        (Join-Path $env:ProgramFiles "Git\bin\bash.exe"),
-        (Join-Path ${env:ProgramFiles(x86)} "Git\bin\bash.exe"),
-        (Join-Path $env:LOCALAPPDATA "Programs\Git\bin\bash.exe")
-    ) | Where-Object { $_ -and (Test-Path $_) }
+    $bashCandidates = @()
+    if ($env:ProgramFiles) { $bashCandidates += Join-Path $env:ProgramFiles "Git\bin\bash.exe" }
+    if (${env:ProgramFiles(x86)}) { $bashCandidates += Join-Path ${env:ProgramFiles(x86)} "Git\bin\bash.exe" }
+    if ($env:LOCALAPPDATA) { $bashCandidates += Join-Path $env:LOCALAPPDATA "Programs\Git\bin\bash.exe" }
+    $bashCandidates = @($bashCandidates | Where-Object { Test-Path $_ })
     if ($bashCandidates) {
         $bash = @($bashCandidates)[0]
         $toPosix = { param($p) ($p -replace '\\', '/') -replace '^([A-Za-z]):', { '/' + $_.Groups[1].Value.ToLower() } }
@@ -99,6 +99,16 @@ foreach ($f in $files) {
     $c = $utf8.GetString($bytes)
     $lc = $c.ToLowerInvariant()
     foreach ($s in $StrHigh) { if ($lc.Contains($s)) { Add-Finding HIGH ioc-string $rp "known malware marker: $s" } }
+    if ($ext -in @('.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.mts', '.cts', '.json')) {
+        $dec = [regex]::Replace($c, '\\u([0-9a-fA-F]{4})', { param($m) [char][convert]::ToInt32($m.Groups[1].Value, 16) })
+        $dec = [regex]::Replace($dec, '\\x([0-9a-fA-F]{2})', { param($m) [char][convert]::ToInt32($m.Groups[1].Value, 16) })
+        $dlc = $dec.ToLowerInvariant()
+        if ($dlc -ne $lc) {
+            foreach ($s in $StrHigh) {
+                if (-not $lc.Contains($s) -and $dlc.Contains($s)) { Add-Finding HIGH ioc-string $rp "known malware marker (javascript-escaped): $s" }
+            }
+        }
+    }
     foreach ($d in $DomHigh) { if ($lc.Contains($d.ToLowerInvariant())) { Add-Finding HIGH ioc-domain $rp "known malicious host: $d" } }
     foreach ($ip in $IpHigh) { if ($c -match ('(?<![\d.])' + [regex]::Escape($ip) + '(?![\d])')) { Add-Finding HIGH ioc-ip $rp "known C2 IP: $ip" } }
     $codeExt = $ext -in @('.js', '.mjs', '.cjs', '.jsx', '.ts', '.tsx', '.json')
@@ -115,7 +125,18 @@ foreach ($f in $files) {
             if ($line.Length -gt 400) { Add-Finding $(if ($line.Length -gt 1000) { 'HIGH' } else { 'MEDIUM' }) config-long-line "${rp}:$i" "line is $($line.Length) chars in a build config" }
             if ($line -match '\S[ \t]{50,}\S') { Add-Finding HIGH config-hidden-tail "${rp}:$i" 'code after 50+ spaces on one line' }
         }
-        if ($c -match '(\beval\s*\(|new\s+Function\s*\(|child_process|\batob\s*\(|fromCharCode|\bglobal\s*\[|\bglobal\.\w+\s*=)') { Add-Finding HIGH config-dangerous-api $rp "build config uses $($Matches[1])" }
+        $apiRx = [regex]::new('(\beval\s*\(|new\s+Function\s*\(|child_process|\batob\s*\(|fromCharCode|\bglobal\s*\[|\bglobal\.\w+\s*=)')
+        $strong = $null; $weak = $null
+        foreach ($m in $apiRx.Matches($c)) {
+            $lineStart = $c.LastIndexOf("`n", [Math]::Max(0, $m.Index - 1)) + 1
+            $prefix = $c.Substring($lineStart, $m.Index - $lineStart)
+            if ($prefix -match '//') { continue }
+            $token = $m.Groups[1].Value
+            if ($token -match '(eval\s*\(|new\s+Function|atob\s*\(|fromCharCode|global\s*\[|global\.\w+\s*=)') { $strong = $token; break }
+            if (-not $weak) { $weak = $token }
+        }
+        if ($strong) { Add-Finding HIGH config-dangerous-api $rp "build config uses $strong (no reason for a config to do this)" }
+        elseif ($weak) { Add-Finding MEDIUM config-dangerous-api $rp "build config uses $weak (review; often a test helper, but unusual in app configs)" }
     }
     if ($rp -match '(^|/)\.vscode/tasks\.json$' -or $name -like '*.code-workspace') {
         if ($c -match '"runOn"\s*:\s*"folderOpen"') { Add-Finding HIGH vscode-autorun $rp 'task runs automatically on folder open' }

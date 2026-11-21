@@ -17,3 +17,5 @@ AppData/Roaming/Microsoft/Windows/Applications/Runtime Broker.exe | Contagious I
 AppData/Local/Microsoft/Windows/Applications/msedge.exe | Fake msedge XMRig (SEAL)
 AppData/Roaming/Microsoft/Windows/Start Menu/Programs/Startup/Windows Update Script.pyw | Startup persistence (SEAL)
 .node_modules | (unless you made it your npm prefix) PolinRider stage-3 private npm prefix ~/.node_modules with axios + socket.io-client (SafeDep 2026-10)
+/tmp/tmp7A863DD1.tmp | PolinRider Python stealer lock file on Linux/macOS (SafeDep 2026-09-30)
+AppData/Local/Temp/tmp7A863DD1.tmp | PolinRider Python stealer lock file on Windows (SafeDep 2026-09-30)

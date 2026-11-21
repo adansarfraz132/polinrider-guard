@@ -33,8 +33,11 @@ Command-and-control has been looked up from blockchain "dead drops"
 `temp_auto_push.bat` (amend and force-push of back-dated commits) and
 `config.bat` added to `.gitignore`.
 
-Related campaigns use the same kind of developer trust. Details, host
-artifacts, and sources are in [THREATS.md](THREATS.md). Every indicator
+A longer, sourced walk-through of the infection chain, including how
+`temp_auto_push.bat` rewrites a victim's own git history, is in
+[docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md). Host artifacts and IOC
+citations are in [THREATS.md](THREATS.md). Real-sample validation is in
+[docs/VALIDATION.md](docs/VALIDATION.md). Every indicator
 in `iocs/` comes from those public sources. Nothing was invented.
 Indicators rotate, so the behaviour checks matter more than any single
 IP or domain.

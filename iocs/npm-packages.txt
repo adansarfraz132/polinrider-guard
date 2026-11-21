@@ -8,6 +8,9 @@ tailwind-animationbased
 tailwindcss-typography-style
 tailwindcss-style-modify
 tailwindcss-animate-style
+# PolinRider / A6-Shadow npm loaders (Melted in Hex, 2026-06-22)
+tailwind-color-shades
+safe-validate
 # BeaverTail carriers (Datadog via Chollima Hunter)
 passports-js
 bcrypts-js
